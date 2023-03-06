@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoscaler-demo
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autoscaler-demo
+  template:
+    metadata:
+      labels:
+        app: autoscaler-demo
+    spec:
+      containers:
+        - name: resource-consumer
+          image: gcr.io/kubernetes-e2e-test-images/resource-consumer:1.4
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: 400m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autoscaler-demo
+spec:
+  selector:
+    app: autoscaler-demo
+  ports:
+    - port: 8080
+      protocol: TCP
+  type: LoadBalancer

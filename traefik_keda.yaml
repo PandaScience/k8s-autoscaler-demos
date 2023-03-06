@@ -1,0 +1,28 @@
+# https://keda.sh/docs/2.9/concepts/scaling-deployments/#overview
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: traefik-demo
+  namespace: default
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: whoami
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  cooldownPeriod: 10
+  pollingInterval: 2
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 30
+  triggers:
+    - type: prometheus
+      metadata:
+        # serverAddress: <service-name>.<namespace>.svc.cluster.local:<service-port>
+        serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        metricName: average_whoami_request_rate
+        query: |
+          rate(traefik_service_requests_total{service=~"default-whoami-.*"}[2m])
+        threshold: "2"

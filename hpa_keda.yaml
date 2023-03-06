@@ -1,0 +1,30 @@
+# https://keda.sh/docs/2.9/concepts/scaling-deployments/#overview
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: keda-demo
+  namespace: default
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: autoscaler-demo
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  cooldownPeriod: 10
+  pollingInterval: 2
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 30
+  # https://keda.sh/docs/2.9/concepts/scaling-deployments/#triggers
+  triggers:
+    - type: prometheus
+      metadata:
+        # serverAddress: <service-name>.<namespace>.svc.cluster.local:<service-port>
+        serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        metricName: keda_test_metric
+        # use sum() b/c otherwise: "prometheus query <query> returned multiple elements"
+        query: |
+          sum(rate(container_cpu_cfs_throttled_periods_total{pod=~"resource-consumer-.*"}[5m]))
+        threshold: "3"
